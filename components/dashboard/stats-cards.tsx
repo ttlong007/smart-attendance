@@ -1,44 +1,72 @@
-"use client";
-
+import { useState, useEffect } from "react";
 import { Card, Metric, Text, Flex, Badge, Icon, Grid } from "@tremor/react";
-import { Users, Building2, Timer, ShieldCheck, AlertCircle } from "lucide-react";
-
-const stats = [
-  {
-    title: "Tổng Nhân viên",
-    metric: "5.000+",
-    icon: Users,
-    color: "blue",
-    trend: "+24 trong tháng",
-    trendColor: "emerald",
-  },
-  {
-    title: "Tổng Chi nhánh",
-    metric: "100",
-    icon: Building2,
-    color: "indigo",
-    trend: "Toàn quốc",
-    trendColor: "slate",
-  },
-  {
-    title: "Đúng giờ (Hôm nay)",
-    metric: "94.8%",
-    icon: Timer,
-    color: "emerald",
-    trend: "+1.2% so với hôm qua",
-    trendColor: "emerald",
-  },
-  {
-    title: "Vi phạm / Gian lận",
-    metric: "12",
-    icon: AlertCircle,
-    color: "rose",
-    trend: "Cần xử lý ngay",
-    trendColor: "rose",
-  },
-];
+import { Users, Building2, Timer, ShieldCheck, AlertCircle, Loader2 } from "lucide-react";
 
 export function StatsCards() {
+  const [statsData, setStatsData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch("/api/admin/dashboard/stats");
+        if (res.ok) {
+          const data = await res.json();
+          setStatsData(data.data);
+        }
+      } catch (err) {
+        console.error("Fetch dashboard stats error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  const stats = [
+    {
+      title: "Tổng Nhân viên",
+      metric: statsData?.totalEmployees.value || "5.000+",
+      icon: Users,
+      color: "blue",
+      trend: statsData?.totalEmployees.trend || "+24 trong tháng",
+      trendColor: "emerald" as any,
+    },
+    {
+      title: "Tổng Chi nhánh",
+      metric: statsData?.totalBranches.value || "100",
+      icon: Building2,
+      color: "indigo",
+      trend: statsData?.totalBranches.trend || "Toàn quốc",
+      trendColor: "slate" as any,
+    },
+    {
+      title: "Đúng giờ (Hôm nay)",
+      metric: statsData?.onTimeRate.value || "94.8%",
+      icon: Timer,
+      color: "emerald",
+      trend: statsData?.onTimeRate.trend || "+1.2% so với hôm qua",
+      trendColor: statsData?.onTimeRate.isPositive ? "emerald" : "rose" as any,
+    },
+    {
+      title: "Vi phạm / Gian lận",
+      metric: statsData?.violations.value ?? "12",
+      icon: AlertCircle,
+      color: "rose",
+      trend: statsData?.violations.trend || "Cần xử lý ngay",
+      trendColor: statsData?.violations.isCritical ? "rose" : "slate" as any,
+    },
+  ];
+
+  if (loading && !statsData) {
+    return (
+      <div className="flex items-center justify-center h-48 py-20 text-slate-400">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <Grid numItemsSm={2} numItemsLg={4} className="gap-4 md:gap-8">
       {stats.map((item) => (

@@ -1,32 +1,35 @@
-"use client";
-
+import { useState, useEffect } from "react";
 import { Card, Title, BarChart, AreaChart, Text, Flex, Badge, Icon } from "@tremor/react";
-import { TrendingUp, BarChart3, Clock, Zap } from "lucide-react";
-
-const branchData = [
-  { name: "Hòa Bình", "Tỷ lệ check-in": 98 },
-  { name: "Cầu Giấy", "Tỷ lệ check-in": 95 },
-  { name: "Hoàn Kiếm", "Tỷ lệ check-in": 92 },
-  { name: "Thanh Xuân", "Tỷ lệ check-in": 88 },
-  { name: "Hai Bà Trưng", "Tỷ lệ check-in": 94 },
-];
-
-const hourlyData = [
-  { hour: "06:00", "Lượt check-in": 120 },
-  { hour: "07:00", "Lượt check-in": 450 },
-  { hour: "08:00", "Lượt check-in": 1200 },
-  { hour: "09:00", "Lượt check-in": 800 },
-  { hour: "10:00", "Lượt check-in": 300 },
-  { hour: "11:00", "Lượt check-in": 150 },
-  { hour: "12:00", "Lượt check-in": 100 },
-  { hour: "13:00", "Lượt check-in": 250 },
-  { hour: "14:00", "Lượt check-in": 300 },
-];
+import { TrendingUp, BarChart3, Clock, Zap, Loader2 } from "lucide-react";
 
 export function AttendanceCharts() {
+  const [chartsData, setChartsData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCharts = async () => {
+      try {
+        const res = await fetch("/api/admin/dashboard/charts");
+        if (res.ok) {
+          const data = await res.json();
+          setChartsData(data.data);
+        }
+      } catch (err) {
+        console.error("Fetch dashboard charts error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCharts();
+  }, []);
+
+  const branchData = chartsData?.branchPerformance || [];
+  const hourlyData = chartsData?.hourlyData || [];
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6 sm:mt-10">
-      <Card className="p-4 sm:p-8 bg-white dark:bg-[#0f172a] border border-slate-100 dark:border-slate-800 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none transition-all duration-500 hover:scale-[1.01] hover:shadow-2xl">
+      <Card className="p-4 sm:p-8 bg-white dark:bg-[#0f172a] border border-slate-100 dark:border-slate-800 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none transition-all duration-500 hover:scale-[1.01] hover:shadow-2xl min-h-[450px] flex flex-col">
         <div className="flex justify-between items-start mb-6 sm:mb-10">
           <div className="flex gap-3 sm:gap-4">
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-inner">
@@ -40,22 +43,28 @@ export function AttendanceCharts() {
           <Badge color="indigo" className="hidden sm:inline-flex px-3 py-1 bg-indigo-50 text-indigo-600 border-none rounded-full font-bold text-[10px] uppercase tracking-widest animate-pulse">Top Giao dịch</Badge>
         </div>
         
-        <BarChart
-          className="h-64 sm:h-80 mt-6"
-          data={branchData}
-          index="name"
-          categories={["Tỷ lệ check-in"]}
-          colors={["indigo"]}
-          valueFormatter={(number: number) => `${number}%`}
-          yAxisWidth={48}
-          showAnimation={true}
-          showLegend={false}
-          showTooltip={true}
-          showGridLines={false}
-        />
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center text-slate-400">
+            <Loader2 className="w-8 h-8 animate-spin" />
+          </div>
+        ) : (
+          <BarChart
+            className="h-64 sm:h-80 mt-6"
+            data={branchData}
+            index="name"
+            categories={["Tỷ lệ check-in"]}
+            colors={["indigo"]}
+            valueFormatter={(number: number) => `${number}%`}
+            yAxisWidth={48}
+            showAnimation={true}
+            showLegend={false}
+            showTooltip={true}
+            showGridLines={false}
+          />
+        )}
       </Card>
 
-      <Card className="p-4 sm:p-8 bg-white dark:bg-[#0f172a] border border-slate-100 dark:border-slate-800 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none transition-all duration-500 hover:scale-[1.01] hover:shadow-2xl">
+      <Card className="p-4 sm:p-8 bg-white dark:bg-[#0f172a] border border-slate-100 dark:border-slate-800 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none transition-all duration-500 hover:scale-[1.01] hover:shadow-2xl min-h-[450px] flex flex-col">
         <div className="flex justify-between items-start mb-6 sm:mb-10">
           <div className="flex gap-3 sm:gap-4">
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-inner">
@@ -72,20 +81,28 @@ export function AttendanceCharts() {
           </div>
         </div>
         
-        <AreaChart
-          className="h-64 sm:h-80 mt-6"
-          data={hourlyData}
-          index="hour"
-          categories={["Lượt check-in"]}
-          colors={["emerald"]}
-          valueFormatter={(number: number) => number.toLocaleString()}
-          yAxisWidth={45}
-          showAnimation={true}
-          showGradient={true}
-          curveType="monotone"
-          showGridLines={false}
-          showLegend={false}
-        />
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center text-slate-400">
+            <Loader2 className="w-8 h-8 animate-spin" />
+          </div>
+        ) : (
+          <AreaChart
+            className="h-64 sm:h-80 mt-6"
+            data={hourlyData}
+            index="hour"
+            categories={["Lượt check-in"]}
+            colors={["emerald"]}
+            valueFormatter={(number: number) => number.toLocaleString()}
+            yAxisWidth={45}
+            showAnimation={true}
+            showGradient={true}
+            curveType="monotone"
+            showGridLines={false}
+            showLegend={false}
+            autoMinValue={true}
+            noDataText="Đang cập nhật dữ liệu..."
+          />
+        )}
       </Card>
     </div>
   );

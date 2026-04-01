@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, LayoutDashboard, Users, ShieldAlert, Settings, LogOut, Bell, Search, Menu, X } from "lucide-react";
+import { Building2, LayoutDashboard, Users, ShieldAlert, Settings, LogOut, Bell, Search, Menu, X, History } from "lucide-react";
 import { Text, Button } from "@tremor/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -10,6 +10,7 @@ import { signOut } from "next-auth/react";
 const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, current: false },
   { name: "Nhân viên", href: "/admin/staff", icon: Users, current: false },
+  { name: "Lịch sử Chấm công", href: "/admin/attendance-logs", icon: History, current: false },
   { name: "Chi nhánh", href: "/admin/branches", icon: Building2, current: false },
   { name: "Báo cáo", href: "/admin/reports", icon: Bell, current: false },
 ];
