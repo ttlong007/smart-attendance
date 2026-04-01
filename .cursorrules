@@ -1,0 +1,26 @@
+# SMART ATTENDANCE V2 - AI INSTRUCTIONS
+
+## 1. PROJECT SCOPE & SCALE
+- [cite_start]Scale: 100 branches, 5,000 employees[cite: 4, 12].
+- [cite_start]Main goal: Smart check-in via WiFi (SSID/BSSID) and GPS Geofencing[cite: 5, 6].
+- [cite_start]Priority: Anti-fraud (No Fake GPS, No VPN)[cite: 6].
+
+## 2. TECH STACK
+- Frontend & Backend: Next.js 14 (App Router).
+- UI: Tailwind CSS + Shadcn UI + Lucide Icons.
+- Database: PostgreSQL + Prisma ORM.
+- [cite_start]Deployment: Docker & Docker Compose.
+
+## 3. DATABASE STRATEGY
+- [cite_start]Multi-branch support: All tables must relate to a Branch ID[cite: 12].
+- [cite_start]Performance: Use proper indexing for 5,000 users and daily check-in logs[cite: 12].
+- [cite_start]API: Implement pagination and filtering for all list views[cite: 12].
+
+## 4. DEVELOPMENT WORKFLOW
+- [cite_start]Git Flow: main (stable), develop (staging), feature/* (tasks)[cite: 15].
+- Commits: Use Conventional Commits (feat, fix, chore)[cite: 16].
+- AI Workflow: Spec -> Generate -> Review -> Test -> Commit[cite: 20].
+
+## 5. ANTI-FRAUD LOGIC (CREATIVE)
+- Verify both WiFi BSSID and GPS coordinates.
+- Requirement: If GPS is suspicious, fallback to FaceID/Biometric (WebAuthn).
