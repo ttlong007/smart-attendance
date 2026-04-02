@@ -7,12 +7,21 @@ Hệ thống chấm công thông minh sử dụng Next.js, Tailwind CSS và Pris
 
 Hệ thống quản lý chấm công đa chi nhánh, hỗ trợ 100 chi nhánh và 5.000 nhân viên với cơ chế chống gian lận đa lớp.
 
-## 🚀 Hướng dẫn cài đặt nhanh (1-Click Deploy)
-Yêu cầu: Đã cài đặt Docker và Docker Compose.
+## 🚀 Hướng dẫn cài đặt & Chạy thử
 1. `git clone <repo-url>`
-2. `cp .env.example .env`
-3. `docker-compose up --build -d`
-4. Truy cập: `http://localhost:3000` (Admin: admin@smartscan.vn / pass: admin123)
+2. `npm install` && `cp .env.example .env`
+3. `npx prisma db push` && `npx prisma db seed`
+4. `npm run dev`
+5. Truy cập: `http://localhost:3000`
+
+## 🔑 Tài khoản thử nghiệm (HDBank Demo)
+| Vai trò | Email đăng nhập | Mật khẩu | Ghi chú |
+| :--- | :--- | :--- | :--- |
+| **Quản trị (Admin)** | `staff1@hdbank.com.vn` | `123456` | Toàn quyền Dashboard & Logs |
+| **Nhân viên (Staff)** | `staff101@hdbank.com.vn` | `123456` | Check-in/out & Lịch sử cá nhân |
+
+> [!TIP]
+> Bạn có thể sử dụng bất kỳ email nào từ `staff1` đến `staff10` cho quyền Admin, và `staff101` đến `staff5000` cho quyền Nhân viên.
 
 ## 🛠️ Tech Stack
 - **Frontend/Backend:** Next.js 14 (App Router) - Tối ưu hóa render phía server (SSR).
