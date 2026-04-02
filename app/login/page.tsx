@@ -49,63 +49,59 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-slate-950 relative overflow-hidden p-4">
-      {/* Dynamic Background Effects */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full animate-pulse" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-600/20 blur-[120px] rounded-full animate-pulse" />
+    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-[#EE1C25] via-[#F15A22] to-[#FFCB05] relative overflow-hidden p-6">
+      {/* Premium subtle glow overlay */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.1),transparent_70%)]" />
 
-      <Card className="w-full max-w-md border-slate-800 bg-slate-900/50 backdrop-blur-xl shadow-2xl relative z-10 overflow-hidden">
-        {/* Glow effect on border */}
-        <div className="absolute inset-x-0 h-px top-0 bg-gradient-to-r from-transparent via-blue-500 to-transparent" />
-
-        <CardHeader className="space-y-2 text-center pb-8">
-          <div className="mx-auto w-16 h-16 bg-blue-600/10 rounded-2xl flex items-center justify-center mb-4 ring-1 ring-blue-500/20">
-            <ShieldCheck className="w-8 h-8 text-blue-500" />
+      <Card className="w-full max-w-sm border-none bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] relative z-10 overflow-hidden px-2 pt-8 pb-4">
+        <CardHeader className="space-y-1 text-center pb-6">
+          <div className="mx-auto mb-6 scale-110">
+            {/* Mock HDBank Logo Style */}
+            <div className="flex items-center justify-center gap-1">
+              <span className="text-4xl font-black text-[#EE1C25] tracking-tighter italic">HDBank</span>
+              <div className="w-6 h-6 bg-[#EE1C25] rounded-tr-xl rounded-bl-xl rotate-12" />
+            </div>
           </div>
-          <CardTitle className="text-3xl font-bold tracking-tight text-slate-100 italic">
-            HDBank{" "}
-            <span className="text-blue-500 not-italic">Smart Attendance</span>
+          <CardTitle className="text-xl font-black text-slate-800 tracking-tight">
+            ĐĂNG NHẬP HỆ THỐNG
           </CardTitle>
-          <CardDescription className="text-slate-400">
-            Đăng nhập để bắt đầu phiên chấm công của bạn
+          <CardDescription className="text-slate-400 font-medium text-xs uppercase tracking-widest">
+            Xác thực nhân viên nội bộ
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-4">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-300 ml-1">
-                Email nội bộ
+        <CardContent className="space-y-6 px-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                Email công việc
               </Label>
               <div className="relative group">
-                <Mail className="absolute left-3 top-3 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                <Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-300 group-focus-within:text-[#EE1C25] transition-colors" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="name@hdbank.com.vn"
+                  placeholder="staff@hdbank.com.vn"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 bg-slate-800/50 border-slate-700 text-slate-100 placeholder:text-slate-600 focus:ring-blue-500/20 focus:border-blue-500 transition-all rounded-xl py-6"
+                  className="pl-11 bg-slate-50 border-transparent text-slate-900 placeholder:text-slate-300 focus:ring-[#EE1C25]/10 focus:border-[#EE1C25] transition-all rounded-2xl py-6 h-12"
                   required
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between ml-1">
-                <Label htmlFor="password" className="text-slate-300">
-                  Mật khẩu
-                </Label>
-                {/* <a href="#" className="text-xs text-blue-500 hover:text-blue-400 transition-colors">Quên mật khẩu?</a> */}
-              </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                Mật khẩu bảo mật
+              </Label>
               <div className="relative group">
-                <Lock className="absolute left-3 top-3 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                <Lock className="absolute left-4 top-3.5 w-5 h-5 text-slate-300 group-focus-within:text-[#EE1C25] transition-colors" />
                 <Input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 bg-slate-800/50 border-slate-700 text-slate-100 focus:ring-blue-500/20 focus:border-blue-500 transition-all rounded-xl py-6"
+                  className="pl-11 bg-slate-50 border-transparent text-slate-900 focus:ring-[#EE1C25]/10 focus:border-[#EE1C25] transition-all rounded-2xl py-6 h-12"
                   required
                 />
               </div>
@@ -113,7 +109,7 @@ export default function LoginPage() {
 
             <Button
               type="submit"
-              className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl mt-4 border-none shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(37,99,235,0.4)] transition-all"
+              className="w-full h-14 bg-gradient-to-r from-[#EE1C25] to-[#F15A22] hover:opacity-90 text-white font-black text-sm uppercase tracking-widest rounded-2xl mt-4 border-none shadow-[0_10px_30px_rgba(238,28,37,0.3)] transition-all active:scale-[0.98]"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -122,22 +118,25 @@ export default function LoginPage() {
                   Đang xác thực...
                 </>
               ) : (
-                "Đăng nhập hệ thống"
+                "Vào hệ thống"
               )}
             </Button>
           </form>
         </CardContent>
 
-        <CardFooter className="flex flex-col space-y-4 pt-4 border-t border-slate-800/50">
-          <p className="text-xs text-center text-slate-500 px-8 leading-relaxed">
-            Hệ thống quản lý chấm công thông minh HDBank. Mọi truy cập trái phép
-            sẽ bị gắn cờ và báo cáo.
+        <CardFooter className="flex flex-col space-y-4 pt-8 text-center">
+          <div className="h-1 w-12 bg-slate-100 rounded-full mx-auto" />
+          <p className="text-[9px] text-slate-400 px-6 uppercase font-bold tracking-tighter leading-tight">
+            Hệ thống chấm công thông minh V2.0<br/>© 2026 HDBank Security Operations
           </p>
         </CardFooter>
       </Card>
 
-      {/* Decorative dots */}
-      <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20 pointer-events-none" />
+      {/* Subtle branding elements in background */}
+      <div className="absolute bottom-10 opacity-10 flex flex-col items-center gap-2">
+        <ShieldCheck className="text-white w-12 h-12" />
+        <span className="text-white font-black tracking-widest text-[10px] uppercase">Smart Scan Security</span>
+      </div>
     </div>
   );
 }

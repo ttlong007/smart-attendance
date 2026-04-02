@@ -13,28 +13,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
-          include: { branch: true },
-        });
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email as string },
+            include: { branch: true },
+          });
 
-        if (!user || !user.password) return null;
+          if (!user || !user.password) return null;
 
-        const isPasswordCorrect = await bcrypt.compare(
-          credentials.password as string,
-          user.password
-        );
+          const isPasswordCorrect = await bcrypt.compare(
+            credentials.password as string,
+            user.password
+          );
 
-        if (!isPasswordCorrect) return null;
+          if (!isPasswordCorrect) return null;
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          branchId: user.branchId,
-          branchName: user.branch?.name,
-        };
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            branchId: user.branchId,
+            branchName: user.branch?.name,
+          };
+        } catch (error) {
+          console.error("Auth error:", error);
+          return null; // Return null instead of throwing to prevent server crash
+        }
       },
     }),
   ],

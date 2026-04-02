@@ -255,10 +255,10 @@ export default function CheckInPage() {
 
   if (!session) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-white gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
-        <p className="text-slate-400 font-medium animate-pulse">
-          Đang kiểm tra bảo mật...
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#EE1C25] to-[#F15A22] text-white gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-white/50" />
+        <p className="text-white/70 font-black text-xs uppercase tracking-[0.2em] animate-pulse">
+          Secure Authentication...
         </p>
       </div>
     );
@@ -266,13 +266,13 @@ export default function CheckInPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center font-sans overflow-x-hidden">
-      <div className="w-full bg-white border-b sticky top-0 z-50 px-6 py-4 flex items-center justify-between shadow-sm">
+      <div className="w-full bg-white/95 backdrop-blur-md border-b sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="bg-blue-600 p-1.5 rounded-lg">
-            <CheckCircle2 className="text-white" size={18} />
+          <div className="bg-gradient-to-br from-[#EE1C25] to-[#F15A22] p-1.5 rounded-lg shadow-lg shadow-red-500/20">
+            <ShieldCheck className="text-white" size={18} />
           </div>
-          <span className="font-bold text-slate-900 tracking-tight">
-            SmartScan V2
+          <span className="font-black text-slate-900 tracking-tighter text-lg italic">
+            HDBank <span className="not-italic font-bold text-slate-400 text-sm">Staff</span>
           </span>
         </div>
         <div className="flex items-center gap-3">
@@ -298,19 +298,19 @@ export default function CheckInPage() {
           </p>
         </div>
 
-        <Card className="border-none shadow-2xl shadow-blue-900/5 overflow-hidden rounded-[2.5rem] bg-white ring-1 ring-slate-100">
+        <Card className="border-none shadow-[0_30px_60px_rgba(238,28,37,0.1)] overflow-hidden rounded-[3rem] bg-white ring-1 ring-slate-100">
           <CardContent className="p-0">
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16" />
+            <div className="bg-gradient-to-br from-[#EE1C25] via-[#F15A22] to-[#FFCB05] p-8 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24" />
               <div className="flex items-center gap-5 relative z-10">
-                <div className="h-16 w-16 rounded-3xl bg-white/20 backdrop-blur-xl flex items-center justify-center border border-white/30 shadow-2xl">
-                  <User size={32} className="text-white" />
+                <div className="h-20 w-20 rounded-[2rem] bg-white/20 backdrop-blur-xl flex items-center justify-center border border-white/30 shadow-2xl">
+                  <User size={36} className="text-white" />
                 </div>
                 <div>
-                  <p className="text-blue-100/70 text-[10px] font-black uppercase tracking-[0.2em] mb-1">
-                    Hello agent,
+                  <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-1">
+                    Employee Profile
                   </p>
-                  <h2 className="text-2xl font-black tracking-tight">
+                  <h2 className="text-3xl font-black tracking-tighter">
                     {staff?.name || "Member"}
                   </h2>
                 </div>
@@ -319,7 +319,7 @@ export default function CheckInPage() {
 
             <div className="p-8 space-y-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-2xl bg-slate-50 text-blue-600 shrink-0">
+                <div className="p-3 rounded-2xl bg-red-50 text-[#EE1C25] shrink-0">
                   <Building2 size={20} />
                 </div>
                 <div className="min-w-0">
@@ -456,12 +456,12 @@ export default function CheckInPage() {
               }
               className={`relative h-56 w-56 rounded-full flex flex-col items-center justify-center gap-2 shadow-[0_20px_50px_rgba(37,99,235,0.3)] transition-all active:scale-95 overflow-hidden border-[12px] border-slate-50 ${
                 attendanceStatus === "CHECKED_OUT"
-                  ? "bg-slate-200 text-slate-400"
+                  ? "bg-slate-100 text-slate-300 border-slate-50"
                   : attendanceStatus === "CHECKED_IN"
-                    ? "bg-gradient-to-br from-rose-500 to-red-600"
+                    ? "bg-gradient-to-br from-orange-500 to-amber-600 shadow-orange-500/30"
                     : photo
-                      ? "bg-gradient-to-br from-emerald-500 to-teal-600"
-                      : "bg-gradient-to-br from-blue-600 to-indigo-700"
+                      ? "bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30"
+                      : "bg-gradient-to-br from-[#EE1C25] to-[#F15A22] shadow-red-500/40"
               }`}
             >
               {loading || isAuthenticating ? (
