@@ -61,6 +61,7 @@ async function main() {
     console.log(`📦 Đã xong batch ${b + 1}/${numBatches} (1.000 nhân viên).`);
   }
 
+  /* 
   console.log('📝 Đang tạo 50 bản ghi chấm công mẫu cho hôm nay...');
   // Lấy danh sách ID nhân viên đã tạo
   const allUsers = await prisma.user.findMany({ 
@@ -94,6 +95,7 @@ async function main() {
 
   await prisma.attendance.createMany({ data: attendanceRecords });
   console.log('✅ Đã tạo 50 bản ghi chấm công.');
+  */
 
   console.log('✨ HOÀN TẤT SEED DỮ LIỆU!');
 }

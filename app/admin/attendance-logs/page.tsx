@@ -15,7 +15,8 @@ import {
   Eye,
   Calendar as CalendarIcon,
   ChevronRight,
-  MoreVertical
+  MoreVertical,
+  Building2
 } from "lucide-react";
 import { 
   Table, 
@@ -41,16 +42,23 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from "@/components/ui/dialog";
-import { format } from "date-fns";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, startOfDay, endOfDay } from "date-fns";
 import { vi } from "date-fns/locale";
 import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AttendanceLogsPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBranch, setSelectedBranch] = useState("all");
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedLog, setSelectedLog] = useState<any>(null);
 
   const fetchBranches = async () => {
@@ -69,6 +77,9 @@ export default function AttendanceLogsPage() {
     setLoading(true);
     try {
       let url = `/api/admin/attendance?branchId=${selectedBranch}`;
+      if (date) {
+        url += `&startDate=${startOfDay(date).toISOString()}&endDate=${endOfDay(date).toISOString()}`;
+      }
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -86,8 +97,11 @@ export default function AttendanceLogsPage() {
 
   useEffect(() => {
     fetchBranches();
+  }, []);
+
+  useEffect(() => {
     fetchLogs();
-  }, [selectedBranch]);
+  }, [selectedBranch, date]);
 
   const exportToCSV = () => {
     if (logs.length === 0) return;
@@ -166,10 +180,28 @@ export default function AttendanceLogsPage() {
           <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest ml-1 flex items-center gap-2">
              <CalendarIcon size={12} /> Thời gian
           </label>
-          <Button variant="outline" className="w-full h-12 rounded-xl bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700 justify-start font-normal text-slate-500">
-            <span className="font-bold text-slate-900 dark:text-slate-200 mr-2">Hôm nay:</span> 
-            {format(new Date(), "dd/MM/yyyy")}
-          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="w-full h-12 rounded-xl bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700 justify-start font-normal text-slate-500 hover:bg-white dark:hover:bg-slate-800 transition-all"
+              >
+                <span className="font-bold text-slate-900 dark:text-slate-200 mr-2">
+                  {date && format(date, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd") ? "Hôm nay:" : "Ngày:"}
+                </span> 
+                {date ? format(date, "dd/MM/yyyy", { locale: vi }) : "Chọn ngày"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 rounded-[1.5rem] border-slate-200 shadow-2xl" align="start">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={setDate}
+                initialFocus
+                className="p-3"
+              />
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="relative flex-[2] min-w-[300px]">
@@ -177,7 +209,9 @@ export default function AttendanceLogsPage() {
           <input 
             type="text" 
             placeholder="Tìm theo tên nhân viên hoặc mã số..." 
-            className="w-full h-12 pl-12 pr-4 rounded-xl bg-slate-50 border border-slate-200 dark:bg-slate-800/50 dark:border-slate-700 focus:outline-none focus:ring-2 ring-indigo-500/20 text-sm"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full h-12 pl-12 pr-4 rounded-xl bg-slate-50 border border-slate-200 dark:bg-slate-800/50 dark:border-slate-700 focus:outline-none focus:ring-2 ring-indigo-500/20 text-sm font-medium"
           />
         </div>
       </div>
@@ -218,7 +252,12 @@ export default function AttendanceLogsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              logs.map((log) => {
+              logs
+                .filter(log => 
+                  log.user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                  (log.user.employeeId && log.user.employeeId.toLowerCase().includes(searchTerm.toLowerCase()))
+                )
+                .map((log) => {
                 const isIpMatch = log.ipAddress === log.branch.allowedPublicIp || (log.ipAddress === "::1" || log.ipAddress === "127.0.0.1");
                 const isDistanceOk = log.distance <= 100;
 
@@ -371,9 +410,4 @@ export default function AttendanceLogsPage() {
       </div>
     </div>
   );
-}
-
-// Dummy icon for Select label
-function Building2({ size }: { size: number }) {
-  return <path d="M6 22V4c0-.6.4-1 1-1h10c.6 0 1 .4 1 1v18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" style={{ width: size, height: size }} />;
 }

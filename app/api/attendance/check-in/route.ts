@@ -60,8 +60,11 @@ export async function POST(request: NextRequest) {
     const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || 
                       request.ip || 
                       "127.0.0.1";
+    
+    // SECURITY LOG: Log every check-in attempt's IP
+    console.log(`[SECURITY-CHECKIN] Detected IP: ${ipAddress} | User: ${userId}`);
+
     const userAgent = request.headers.get("user-agent") || "unknown";
-    const isLocal = ipAddress === "::1" || ipAddress === "127.0.0.1";
 
     // 4. Fetch User and Branch Configuration
     const user = await prisma.user.findUnique({
@@ -96,7 +99,17 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Verification Status Assessment (Priority: Public IP)
-    const isIpValid = isLocal || !branch.allowedPublicIp || ipAddress === branch.allowedPublicIp;
+    // Support multiple allowed IPs (comma-separated) to handle IPv4/IPv6 dual-stack
+    const allowedIps = branch.allowedPublicIp 
+      ? branch.allowedPublicIp.split(',').map(ip => ip.trim()).filter(ip => ip !== "")
+      : [];
+    
+    const isIpValid = allowedIps.length === 0 || allowedIps.includes(ipAddress);
+    
+    if (allowedIps.length > 0) {
+      console.log(`[SECURITY-CHECKIN] Verification: ${isIpValid ? 'PASSED' : 'FAILED'}`);
+      console.log(`[SECURITY-CHECKIN] Expected one of: [${allowedIps.join(', ')}] | Detected: ${ipAddress}`);
+    }
     
     // Non-blocking WiFi & Anti-Fraud for Audit Trail
     const isCorrectSsid = !branch.allowedWifiSsid || wifiSsid === branch.allowedWifiSsid;
