@@ -29,6 +29,7 @@ Thumbs.db
 # Prisma (Nếu anh có file SQLite local hoặc log)
 *.db
 *.db-journal
+*.tsbuildinfo
 
 # Docker
 .docker/

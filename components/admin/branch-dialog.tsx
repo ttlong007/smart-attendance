@@ -38,8 +38,9 @@ const formSchema = z.object({
   allowedWifiBssid: z.string().min(1, { message: "BSSID không được để trống." }),
   allowedPublicIp: z.string().optional().or(z.literal("")).refine((val) => {
     if (!val) return true;
-    return ipv4Regex.test(val) || ipv6Regex.test(val);
-  }, { message: "Định dạng IP không hợp lệ (hỗ trợ IPv4/IPv6)." }),
+    const ips = val.split(',').map(ip => ip.trim()).filter(ip => ip !== "");
+    return ips.every(ip => ipv4Regex.test(ip) || ipv6Regex.test(ip));
+  }, { message: "Định dạng IP không hợp lệ (Hỗ trợ danh sách IPv4/IPv6 ngăn cách bởi dấu phẩy)." }),
 });
 
 interface BranchDialogProps {
@@ -56,15 +57,43 @@ export function BranchDialog({ open, onOpenChange, branch, onSuccess }: BranchDi
 
   const fetchMyIp = async () => {
     setFetchingIp(true);
+    const discoveredIps = new Set<string>();
+    
+    // Get current value to avoid losing manually entered IPs
+    const currentValue = form.getValues("allowedPublicIp");
+    if (currentValue) {
+      currentValue.split(',').forEach(ip => {
+        const trimmed = ip.trim();
+        if (trimmed) discoveredIps.add(trimmed);
+      });
+    }
+
     try {
-      const response = await fetch("https://api.ipify.org?format=json");
-      const data = await response.json();
-      if (data.ip) {
-        form.setValue("allowedPublicIp", data.ip);
-        toast({ title: "Đã lấy IP thành công", description: `Địa chỉ IP: ${data.ip}` });
+      // Source 1: Our OWN server perspective (Most accurate for our app)
+      const res1 = await fetch("/api/admin/my-ip").then(r => r.json()).catch(() => null);
+      if (res1?.ip) discoveredIps.add(res1.ip);
+
+      // Source 2: External IPv6/IPv4 universal
+      const res2 = await fetch("https://api64.ipify.org?format=json").then(r => r.json()).catch(() => null);
+      if (res2?.ip) discoveredIps.add(res2.ip);
+
+      // Source 3: Forced IPv4
+      const res3 = await fetch("https://api.ipify.org?format=json").then(r => r.json()).catch(() => null);
+      if (res3?.ip) discoveredIps.add(res3.ip);
+
+      const finalIps = Array.from(discoveredIps);
+      
+      if (finalIps.length > 0) {
+        form.setValue("allowedPublicIp", finalIps.join(", "));
+        toast({ 
+          title: "Đã cập nhật danh sách IP", 
+          description: `Phát hiện ${finalIps.length} địa chỉ: ${finalIps.join(", ")}` 
+        });
+      } else {
+        throw new Error("No IP found");
       }
     } catch (error) {
-      toast({ variant: "destructive", title: "Lỗi", description: "Không thể lấy IP hiện tại của bạn." });
+      toast({ variant: "destructive", title: "Lỗi", description: "Không thể tự động lấy IP. Vui lòng điền thủ công." });
     } finally {
       setFetchingIp(false);
     }
