@@ -14,17 +14,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!credentials?.email || !credentials?.password) return null;
 
         try {
+          console.log(`[AUTH-DEBUG] Attempting login for email: ${credentials.email}`);
+          
           const user = await prisma.user.findUnique({
             where: { email: credentials.email as string },
             include: { branch: true },
           });
 
-          if (!user || !user.password) return null;
+          if (!user) {
+            console.log(`[AUTH-DEBUG] User not found for email: ${credentials.email}`);
+            return null;
+          }
+
+          if (!user.password) {
+            console.log(`[AUTH-DEBUG] User found but has no password set.`);
+            return null;
+          }
 
           const isPasswordCorrect = await bcrypt.compare(
             credentials.password as string,
             user.password
           );
+
+          console.log(`[AUTH-DEBUG] Password check for ${credentials.email}: ${isPasswordCorrect ? 'MATCHED' : 'FAILED'}`);
 
           if (!isPasswordCorrect) return null;
 
@@ -36,9 +48,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             branchId: user.branchId,
             branchName: user.branch?.name,
           };
-        } catch (error) {
-          console.error("Auth error:", error);
-          return null; // Return null instead of throwing to prevent server crash
+        } catch (error: any) {
+          console.error("[AUTH-ERR] Database or logic error:", error);
+          return null; 
         }
       },
     }),
