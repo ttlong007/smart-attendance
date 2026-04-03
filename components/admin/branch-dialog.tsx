@@ -59,15 +59,6 @@ export function BranchDialog({ open, onOpenChange, branch, onSuccess }: BranchDi
     setFetchingIp(true);
     const discoveredIps = new Set<string>();
     
-    // Get current value to avoid losing manually entered IPs
-    const currentValue = form.getValues("allowedPublicIp");
-    if (currentValue) {
-      currentValue.split(',').forEach(ip => {
-        const trimmed = ip.trim();
-        if (trimmed) discoveredIps.add(trimmed);
-      });
-    }
-
     try {
       // Source 1: Our OWN server perspective (Most accurate for our app)
       const res1 = await fetch("/api/admin/my-ip").then(r => r.json()).catch(() => null);
