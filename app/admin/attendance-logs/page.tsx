@@ -51,6 +51,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { vi } from "date-fns/locale";
 import { toast } from "sonner";
+import { useDebounce } from "@/hooks/use-debounce";
 
 export default function AttendanceLogsPage() {
   const [logs, setLogs] = useState<any[]>([]);
@@ -59,6 +60,7 @@ export default function AttendanceLogsPage() {
   const [selectedBranch, setSelectedBranch] = useState("all");
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 1500);
   const [selectedLog, setSelectedLog] = useState<any>(null);
 
   const fetchBranches = async () => {
@@ -254,8 +256,8 @@ export default function AttendanceLogsPage() {
             ) : (
               logs
                 .filter(log => 
-                  log.user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                  (log.user.employeeId && log.user.employeeId.toLowerCase().includes(searchTerm.toLowerCase()))
+                  log.user.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) || 
+                  (log.user.employeeId && log.user.employeeId.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
                 )
                 .map((log) => {
                 const isIpMatch = log.ipAddress === log.branch.allowedPublicIp || (log.ipAddress === "::1" || log.ipAddress === "127.0.0.1");

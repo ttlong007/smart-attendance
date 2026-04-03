@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface Branch {
   id: string;
@@ -61,7 +62,7 @@ export default function StaffPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 1500);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const refresh = useCallback(() => {
@@ -116,14 +117,6 @@ export default function StaffPage() {
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, branchFilter]);
-
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [search]);
 
   const handleCreate = () => {
     setSelectedStaff(null);

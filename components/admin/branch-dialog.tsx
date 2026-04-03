@@ -10,7 +10,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -60,17 +59,21 @@ export function BranchDialog({ open, onOpenChange, branch, onSuccess }: BranchDi
     const discoveredIps = new Set<string>();
     
     try {
-      // Source 1: Our OWN server perspective (Most accurate for our app)
+      // Source 1: Our OWN server perspective
       const res1 = await fetch("/api/admin/my-ip").then(r => r.json()).catch(() => null);
       if (res1?.ip) discoveredIps.add(res1.ip);
 
-      // Source 2: External IPv6/IPv4 universal
-      const res2 = await fetch("https://api64.ipify.org?format=json").then(r => r.json()).catch(() => null);
+      // Source 2: GUARANTEED IPv6 (api6.ipify.org only returns IPv6 if available)
+      const res2 = await fetch("https://api6.ipify.org?format=json").then(r => r.json()).catch(() => null);
       if (res2?.ip) discoveredIps.add(res2.ip);
 
-      // Source 3: Forced IPv4
-      const res3 = await fetch("https://api.ipify.org?format=json").then(r => r.json()).catch(() => null);
+      // Source 3: IPv6/IPv4 universal
+      const res3 = await fetch("https://api64.ipify.org?format=json").then(r => r.json()).catch(() => null);
       if (res3?.ip) discoveredIps.add(res3.ip);
+
+      // Source 4: Forced IPv4
+      const res4 = await fetch("https://api.ipify.org?format=json").then(r => r.json()).catch(() => null);
+      if (res4?.ip) discoveredIps.add(res4.ip);
 
       const finalIps = Array.from(discoveredIps);
       
@@ -163,143 +166,159 @@ export function BranchDialog({ open, onOpenChange, branch, onSuccess }: BranchDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>{branch ? "Sửa Chi Nhánh" : "Thêm Chi Nhánh"}</DialogTitle>
-          <DialogDescription>
-            Cấu hình thông tin chi nhánh và vùng an toàn chấm công.
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tên Chi Nhánh</FormLabel>
-                  <FormControl>
-                    <Input placeholder="VD: Chi nhánh Hòa Bình" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Địa chỉ</FormLabel>
-                  <FormControl>
-                    <Input placeholder="VD: Số 123, Đường A, Quận B" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-2 gap-4">
+      <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-none rounded-[2.5rem] bg-white shadow-2xl">
+        <div className="max-h-[90vh] overflow-y-auto p-8">
+          <DialogHeader className="mb-8">
+            <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">
+              {branch ? "Sửa Chi Nhánh" : "Thêm Chi Nhánh Mới"}
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 font-medium">
+              Cấu hình thông tin chi nhánh và vùng an toàn chấm công.
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
-                name="latitude"
+                name="name"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vĩ độ (Lat)</FormLabel>
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tên Chi Nhánh</FormLabel>
                     <FormControl>
-                      <Input placeholder="21.0285" {...field} />
+                      <Input placeholder="VD: Chi nhánh Hòa Bình" {...field} className="h-12 bg-slate-50 border-transparent rounded-xl focus:ring-indigo-500/10 focus:border-indigo-500" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
-                name="longitude"
+                name="address"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Kinh độ (Lng)</FormLabel>
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Địa chỉ</FormLabel>
                     <FormControl>
-                      <Input placeholder="105.8542" {...field} />
+                      <Input placeholder="VD: Số 123, Đường A, Quận B" {...field} className="h-12 bg-slate-50 border-transparent rounded-xl focus:ring-indigo-500/10 focus:border-indigo-500" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
-            <FormField
-              control={form.control}
-              name="radius"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Bán kính cho phép (m)</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-2 gap-4">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="latitude"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Vĩ độ (Lat)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="21.0285" {...field} className="h-12 bg-slate-50 border-transparent rounded-xl" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="longitude"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Kinh độ (Lng)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="105.8542" {...field} className="h-12 bg-slate-50 border-transparent rounded-xl" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <FormField
                 control={form.control}
-                name="allowedWifiSsid"
+                name="radius"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>SSID</FormLabel>
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bán kính cho phép (m)</FormLabel>
                     <FormControl>
-                      <Input placeholder="HDBank_Branch_WiFi" {...field} />
+                      <Input type="number" {...field} className="h-12 bg-slate-50 border-transparent rounded-xl" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="allowedWifiSsid"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">SSID WiFi (Tên WiFi)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="HDBank_Branch_WiFi" {...field} className="h-12 bg-slate-50 border-transparent rounded-xl" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="allowedWifiBssid"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">BSSID WiFi (MAC Addr)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="00:11:22:33:44:55" {...field} className="h-12 bg-slate-50 border-transparent rounded-xl" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <FormField
                 control={form.control}
-                name="allowedWifiBssid"
+                name="allowedPublicIp"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>BSSID</FormLabel>
+                  <FormItem className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Địa chỉ IP tĩnh (Public IP)</FormLabel>
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={fetchMyIp}
+                        disabled={fetchingIp}
+                        className="h-8 text-[10px] text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 font-bold uppercase tracking-tight"
+                      >
+                        {fetchingIp ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Globe className="h-3 w-3 mr-1" />}
+                        Lấy IP hiện tại của tôi
+                      </Button>
+                    </div>
                     <FormControl>
-                      <Input placeholder="00:11:22:33:44:55" {...field} />
+                      <Input placeholder="VD: 14.232.245.168 (Bỏ trống nếu không bắt buộc)" {...field} className="h-12 bg-slate-50 border-transparent rounded-xl font-mono text-sm" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
-            <FormField
-              control={form.control}
-              name="allowedPublicIp"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center justify-between">
-                    <FormLabel>Địa chỉ IP tĩnh (Public IP)</FormLabel>
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={fetchMyIp}
-                      disabled={fetchingIp}
-                      className="h-8 text-[10px] text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 font-bold uppercase tracking-tight"
-                    >
-                      {fetchingIp ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Globe className="h-3 w-3 mr-1" />}
-                      Lấy IP hiện tại của tôi
-                    </Button>
-                  </div>
-                  <FormControl>
-                    <Input placeholder="VD: 14.232.245.168 (Bỏ trống nếu không bắt buộc)" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none font-bold uppercase tracking-widest text-xs py-5">
-                {loading ? "Đang lưu..." : "Lưu thay đổi"}
+
+              <Button type="submit" disabled={loading} className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-indigo-100 mt-4 transition-all active:scale-[0.98]">
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Đang lưu...
+                  </>
+                ) : (
+                  "Lưu thay đổi"
+                )}
               </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+            </form>
+          </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );
