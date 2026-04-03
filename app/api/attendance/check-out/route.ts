@@ -28,14 +28,13 @@ export async function PATCH(request: NextRequest) {
   try {
     const session = await auth();
     
-    // 1. Obtain User Network Info ASAP for logging
-    const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || 
-                      request.ip || 
-                      "127.0.0.1";
+    // 3. Obtain User Network Info (Standard for Vercel/Proxy environments)
+    const ipAddress = 
+      request.headers.get("x-real-ip") || 
+      request.headers.get("x-forwarded-for")?.split(",")[0].trim() || 
+      request.ip || 
+      "127.0.0.1";
     
-    // DEBUG LOG: For Public IP Change monitoring
-    console.log(`[CHECK-OUT] IP: ${ipAddress} | Time: ${new Date().toISOString()} | User: ${session?.user?.email || "Unknown"}`);
-
     if (!session || !session.user || !session.user.id) {
       return NextResponse.json(
         { success: false, message: "Phiên làm việc hết hạn. Vui lòng đăng nhập lại." },
@@ -43,10 +42,13 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // 2. Parse Request Body
+    // DEBUG LOG: For Public IP Change monitoring
+    console.log(`[IP-DEBUG] Check-out User: ${session.user.id} | IP: ${ipAddress}`);
+
+    // 4. Parse Request Body
     const body = await request.json().catch(() => ({}));
     const { 
-      latitude, longitude, wifiSsid, wifiBssid, 
+      latitude, longitude, wifiSsid, wifiBssid,
       photo, accuracy, isMocked 
     } = body;
     
@@ -59,7 +61,7 @@ export async function PATCH(request: NextRequest) {
 
     const userAgent = request.headers.get("user-agent") || "unknown";
 
-    // 4. Find valid check-in today
+    // 5. Find valid check-in today
     const today = new Date();
     const attendance = await prisma.attendance.findFirst({
       where: {
@@ -83,33 +85,17 @@ export async function PATCH(request: NextRequest) {
 
     const branch = attendance.branch;
 
-    // SECURITY LOG: Log check-out IP info
-    console.log(`[SECURITY-CHECKOUT] Detected IP: ${ipAddress} | User: ${session.user.id}`);
-
-    // 5. Hard Blocking: GPS Distance & Anti-Fraud
+    // 6. Hard Blocking: GPS Distance & Anti-Fraud
     const lat = parseFloat(latitude);
     const lng = parseFloat(longitude);
     const distance = getDistance(lat, lng, branch.latitude, branch.longitude);
     const isWithinRange = distance <= branch.radius;
     const isGpsSpoofed = isMocked === true || accuracy === 0 || (accuracy && accuracy > 1000);
 
-    // WiFi Audit Data
-    const isCorrectSsid = !branch.allowedWifiSsid || wifiSsid === branch.allowedWifiSsid;
-    const isCorrectBssid = !branch.allowedWifiBssid || wifiBssid === branch.allowedWifiBssid;
-
-    /* OPTIONAL: Uncomment to enable strict WiFi blocking at check-out
-    if (!isCorrectSsid || !isCorrectBssid) {
-       return NextResponse.json(
-        { success: false, message: "Môi trường mạng không hợp lệ. Vui lòng kết nối WiFi nội bộ để tan ca." },
-        { status: 403 }
-      );
-    }
-    */
-
     if (!isWithinRange) {
       return NextResponse.json(
         { success: false, message: `Bạn đang ở ngoài phạm vi chi nhánh (${Math.round(distance)}m). Vui lòng di chuyển vào trong để tan ca.` },
-        { status: 400, headers: HEADERS }
+        { status: 403, headers: HEADERS }
       );
     }
 
@@ -120,7 +106,25 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // 6. Photo Validation
+    // 7. Hard Blocking: Public IP Validation
+    const allowedIps = branch.allowedPublicIp 
+      ? branch.allowedPublicIp.split(',').map(ip => ip.trim()).filter(ip => ip !== "")
+      : [];
+
+    const isIpValid = allowedIps.length === 0 || allowedIps.includes(ipAddress);
+    
+    if (!isIpValid) {
+      console.warn(`[SECURITY-ALERT] Blocked Check-out from unauthorized IP: ${ipAddress} | User: ${session.user.id}`);
+      return NextResponse.json({
+        success: false,
+        message: "Bạn đang sử dụng mạng (IP) không hợp lệ. Vui lòng kết nối WiFi văn phòng để tan ca.",
+        data: {
+          detectedIp: ipAddress
+        }
+      }, { status: 403, headers: HEADERS });
+    }
+
+    // 8. Photo Validation
     const isPhotoValid = typeof photo === 'string' && photo.startsWith('data:image/');
     if (!photo || !isPhotoValid) {
       return NextResponse.json(
@@ -129,41 +133,13 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // 7. Verification Assessment (Priority: Public IP)
-    // Support multiple allowed IPs (comma-separated) to handle IPv4/IPv6 dual-stack
-    const allowedIps = branch.allowedPublicIp 
-      ? branch.allowedPublicIp.split(',').map(ip => ip.trim()).filter(ip => ip !== "")
-      : [];
-
-    const isIpValid = allowedIps.length === 0 || allowedIps.includes(ipAddress);
-    
-    if (allowedIps.length > 0) {
-      console.log(`[SECURITY-CHECKOUT] Verification: ${isIpValid ? 'PASSED' : 'FAILED'}`);
-      console.log(`[SECURITY-CHECKOUT] Expected one of: [${allowedIps.join(', ')}] | Detected: ${ipAddress}`);
-    }
-
-    if (!isIpValid) {
-      return NextResponse.json({
-        success: false,
-        message: "Tan ca bị từ chối do truy cập ngoài mạng IP nội bộ.",
-        data: {
-          ipAddress: ipAddress,
-          allowedIps: allowedIps
-        }
-      }, { status: 400, headers: HEADERS });
-    }
-
-    // 8. Calculate total hours
+    // 9. Calculate total hours
     const checkInTime = new Date(attendance.checkIn);
     const checkOutTime = new Date();
     const diffMs = checkOutTime.getTime() - checkInTime.getTime();
     const totalHours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
 
-    // 9. Update Record
-    // Since we blocked !isIpValid, we know isIpValid is true here.
-    // The session remains verified if it was already verified at check-in.
-    const isVerified = attendance.isVerified; 
-
+    // 10. Update Record
     const updatedAttendance = await prisma.attendance.update({
       where: { id: attendance.id },
       data: {
@@ -173,8 +149,8 @@ export async function PATCH(request: NextRequest) {
         lat: lat,
         lng: lng,
         photoOut: photo, 
-        isVerified: isVerified,
-        verificationNote: attendance.verificationNote,
+        isVerified: true, // Since it passed both GPS and IP check
+        verificationNote: attendance.verificationNote, 
       } as any,
     });
 

@@ -56,13 +56,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Obtain User Network Info (Strictly from server headers)
-    const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || 
-                      request.ip || 
-                      "127.0.0.1";
+    // 3. Obtain User Network Info (Standard for Vercel/Proxy environments)
+    const ipAddress = 
+      request.headers.get("x-real-ip") || 
+      request.headers.get("x-forwarded-for")?.split(",")[0].trim() || 
+      request.ip || 
+      "127.0.0.1";
     
     // SECURITY LOG: Log every check-in attempt's IP
-    console.log(`[SECURITY-CHECKIN] Detected IP: ${ipAddress} | User: ${userId}`);
+    console.log(`[IP-DEBUG] User: ${userId} | Detected IP: ${ipAddress}`);
 
     const userAgent = request.headers.get("user-agent") || "unknown";
 
@@ -88,7 +90,6 @@ export async function POST(request: NextRequest) {
     const isWithinRange = distance <= branch.radius;
 
     if (!isWithinRange) {
-      // STRICT BLOCK: Return 400 immediately, no record created.
       return NextResponse.json(
         { 
           success: false, 
@@ -98,48 +99,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 6. Verification Status Assessment (Priority: Public IP)
-    // Support multiple allowed IPs (comma-separated) to handle IPv4/IPv6 dual-stack
+    // 6. Hard Blocking: Public IP Validation
     const allowedIps = branch.allowedPublicIp 
       ? branch.allowedPublicIp.split(',').map(ip => ip.trim()).filter(ip => ip !== "")
       : [];
     
     const isIpValid = allowedIps.length === 0 || allowedIps.includes(ipAddress);
     
-    if (allowedIps.length > 0) {
-      console.log(`[SECURITY-CHECKIN] Verification: ${isIpValid ? 'PASSED' : 'FAILED'}`);
-      console.log(`[SECURITY-CHECKIN] Expected one of: [${allowedIps.join(', ')}] | Detected: ${ipAddress}`);
+    if (!isIpValid) {
+      console.warn(`[SECURITY-ALERT] Blocked Check-in from unauthorized IP: ${ipAddress} | User: ${userId}`);
+      return NextResponse.json({
+        success: false,
+        message: "Bạn đang sử dụng mạng (IP) không hợp lệ. Vui lòng kết nối WiFi văn phòng để chấm công.",
+        data: {
+          detectedIp: ipAddress,
+          isMocked: isMocked
+        }
+      }, { status: 403 });
     }
-    
-    // Non-blocking WiFi & Anti-Fraud for Audit Trail
-    const isCorrectSsid = !branch.allowedWifiSsid || wifiSsid === branch.allowedWifiSsid;
-    const isCorrectBssid = !branch.allowedWifiBssid || wifiBssid === branch.allowedWifiBssid;
 
-    /* OPTIONAL: Uncomment to enable strict WiFi blocking
-    if (!isCorrectSsid || !isCorrectBssid) {
-      return NextResponse.json(
-        { success: false, message: "Môi trường mạng không hợp lệ. Vui lòng kết nối WiFi chi nhánh." },
-        { status: 403 }
-      );
-    }
-    */
-
+    // 7. Audit Trail (Non-blocking SSID, mostly for logging)
     const isGpsSpoofed = isMocked === true || accuracy === 0 || (accuracy && accuracy > 1000);
     const isPhotoValid = typeof photo === 'string' && photo.startsWith('data:image/');
 
     const auditFailures: string[] = [];
-    if (!isIpValid) auditFailures.push(`Truy cập ngoài mạng IP nội bộ (IP: ${ipAddress})`);
-    if (!isCorrectSsid) auditFailures.push(`Sai WiFi SSID: ${wifiSsid}`);
-    if (!isCorrectBssid) auditFailures.push("Sai WiFi BSSID/MAC");
     if (isGpsSpoofed) auditFailures.push("Nghi ngờ giả lập GPS");
     if (!photo) auditFailures.push("Thiếu ảnh selfie");
     else if (!isPhotoValid) auditFailures.push("Ảnh selfie không hợp lệ");
 
-    // Final isVerified decision (IP is the hard requirement for "Verified" status)
-    const isVerified = isIpValid; 
-    const verificationNote = isVerified 
-      ? (auditFailures.length > 0 ? `Audit: ${auditFailures.join("; ")}` : null)
-      : "Truy cập ngoài mạng IP nội bộ";
+    // Final isVerified decision (GPS and IP are the hard requirements)
+    const isVerified = isIpValid && isWithinRange; 
+    const verificationNote = auditFailures.length > 0 ? `Audit: ${auditFailures.join("; ")}` : null;
 
     // 7. Determine Attendance Status (Standard: 9:00 AM)
     const now = new Date();
