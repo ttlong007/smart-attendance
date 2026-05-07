@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
     const startDateParam = searchParams.get("startDate");
     const endDateParam = searchParams.get("endDate");
     const branchId = searchParams.get("branchId");
+    const search = (searchParams.get("search") || "").trim();
 
     let where: any = {};
 
@@ -36,6 +37,15 @@ export async function GET(request: NextRequest) {
 
     if (branchId && branchId !== "all") {
       where.branchId = branchId;
+    }
+
+    if (search) {
+      where.user = {
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { email: { contains: search, mode: "insensitive" } },
+        ],
+      };
     }
 
     const rawLogs = await prisma.attendance.findMany({

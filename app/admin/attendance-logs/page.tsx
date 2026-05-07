@@ -2,21 +2,22 @@
 
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { 
-  History, 
-  Search, 
-  Filter, 
-  Download, 
-  MapPin, 
-  Globe, 
-  Image as ImageIcon, 
-  CheckCircle2, 
+import {
+  History,
+  Search,
+  Filter,
+  Download,
+  MapPin,
+  Globe,
+  Image as ImageIcon,
+  CheckCircle2,
   AlertCircle,
   Eye,
   Calendar as CalendarIcon,
   ChevronRight,
   MoreVertical,
-  Building2
+  Building2,
+  Clock,
 } from "lucide-react";
 import { 
   Table, 
@@ -48,17 +49,90 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { format, startOfDay, endOfDay } from "date-fns";
+import {
+  format,
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  subDays,
+} from "date-fns";
 import { vi } from "date-fns/locale";
+import type { DateRange } from "react-day-picker";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
+
+type RangePreset =
+  | "today"
+  | "yesterday"
+  | "this_week"
+  | "last_7_days"
+  | "this_month"
+  | "last_30_days"
+  | "custom";
+
+const RANGE_LABELS: Record<RangePreset, string> = {
+  today: "Hôm nay",
+  yesterday: "Hôm qua",
+  this_week: "Tuần này",
+  last_7_days: "7 ngày qua",
+  this_month: "Tháng này",
+  last_30_days: "30 ngày qua",
+  custom: "Tùy chỉnh",
+};
+
+const formatDuration = (totalHours?: number | null): string | null => {
+  if (totalHours == null || !isFinite(totalHours) || totalHours <= 0) return null;
+  const minutes = Math.round(totalHours * 60);
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} phút`;
+  if (m === 0) return `${h} giờ`;
+  return `${h} giờ ${m} phút`;
+};
+
+const computeRange = (
+  preset: RangePreset,
+  customRange?: DateRange,
+): { start: Date; end: Date } | null => {
+  const now = new Date();
+  switch (preset) {
+    case "today":
+      return { start: startOfDay(now), end: endOfDay(now) };
+    case "yesterday": {
+      const y = subDays(now, 1);
+      return { start: startOfDay(y), end: endOfDay(y) };
+    }
+    case "this_week":
+      return {
+        start: startOfWeek(now, { weekStartsOn: 1 }),
+        end: endOfWeek(now, { weekStartsOn: 1 }),
+      };
+    case "last_7_days":
+      return { start: startOfDay(subDays(now, 6)), end: endOfDay(now) };
+    case "this_month":
+      return { start: startOfMonth(now), end: endOfMonth(now) };
+    case "last_30_days":
+      return { start: startOfDay(subDays(now, 29)), end: endOfDay(now) };
+    case "custom": {
+      if (!customRange?.from) return null;
+      return {
+        start: startOfDay(customRange.from),
+        end: endOfDay(customRange.to ?? customRange.from),
+      };
+    }
+  }
+};
 
 export default function AttendanceLogsPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBranch, setSelectedBranch] = useState("all");
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [rangePreset, setRangePreset] = useState<RangePreset>("today");
+  const [customRange, setCustomRange] = useState<DateRange | undefined>();
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 1500);
   const [selectedLog, setSelectedLog] = useState<any>(null);
@@ -75,14 +149,25 @@ export default function AttendanceLogsPage() {
     }
   };
 
+  const range = computeRange(rangePreset, customRange);
+
   const fetchLogs = async () => {
+    if (rangePreset === "custom" && !range) {
+      setLogs([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      let url = `/api/admin/attendance?branchId=${selectedBranch}`;
-      if (date) {
-        url += `&startDate=${startOfDay(date).toISOString()}&endDate=${endOfDay(date).toISOString()}`;
+      const params = new URLSearchParams({ branchId: selectedBranch });
+      if (range) {
+        params.set("startDate", range.start.toISOString());
+        params.set("endDate", range.end.toISOString());
       }
-      const res = await fetch(url);
+      if (debouncedSearchTerm.trim()) {
+        params.set("search", debouncedSearchTerm.trim());
+      }
+      const res = await fetch(`/api/admin/attendance?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setLogs(data.data || []);
@@ -103,7 +188,8 @@ export default function AttendanceLogsPage() {
 
   useEffect(() => {
     fetchLogs();
-  }, [selectedBranch, date]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBranch, rangePreset, customRange?.from, customRange?.to, debouncedSearchTerm]);
 
   const exportToCSV = () => {
     if (logs.length === 0) return;
@@ -182,29 +268,60 @@ export default function AttendanceLogsPage() {
           <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest ml-1 flex items-center gap-2">
              <CalendarIcon size={12} /> Thời gian
           </label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button 
-                variant="outline" 
-                className="w-full h-12 rounded-xl bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700 justify-start font-normal text-slate-500 hover:bg-white dark:hover:bg-slate-800 transition-all"
-              >
-                <span className="font-bold text-slate-900 dark:text-slate-200 mr-2">
-                  {date && format(date, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd") ? "Hôm nay:" : "Ngày:"}
-                </span> 
-                {date ? format(date, "dd/MM/yyyy", { locale: vi }) : "Chọn ngày"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 rounded-[1.5rem] border-slate-200 shadow-2xl" align="start">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                initialFocus
-                className="p-3"
-              />
-            </PopoverContent>
-          </Popover>
+          <Select
+            value={rangePreset}
+            onValueChange={(v) => {
+              setRangePreset(v as RangePreset);
+              if (v !== "custom") setCustomRange(undefined);
+            }}
+          >
+            <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(RANGE_LABELS) as RangePreset[]).map((k) => (
+                <SelectItem key={k} value={k}>{RANGE_LABELS[k]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+
+        {rangePreset === "custom" && (
+          <div className="space-y-2 flex-1 min-w-[240px]">
+            <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest ml-1 flex items-center gap-2">
+              <CalendarIcon size={12} /> Khoảng ngày
+            </label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full h-12 rounded-xl bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700 justify-start font-normal text-slate-500 hover:bg-white dark:hover:bg-slate-800 transition-all"
+                >
+                  {customRange?.from ? (
+                    <span className="font-bold text-slate-900 dark:text-slate-200">
+                      {format(customRange.from, "dd/MM/yyyy", { locale: vi })}
+                      {customRange.to
+                        ? ` — ${format(customRange.to, "dd/MM/yyyy", { locale: vi })}`
+                        : ""}
+                    </span>
+                  ) : (
+                    "Chọn khoảng ngày"
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 rounded-[1.5rem] border-slate-200 shadow-2xl" align="start">
+                <Calendar
+                  mode="range"
+                  selected={customRange}
+                  onSelect={setCustomRange}
+                  numberOfMonths={2}
+                  initialFocus
+                  className="p-3"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
 
         <div className="relative flex-[2] min-w-[300px]">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -254,16 +371,43 @@ export default function AttendanceLogsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              logs
-                .filter(log => 
-                  log.user.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) || 
-                  (log.user.employeeId && log.user.employeeId.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
-                )
-                .map((log) => {
+              logs.flatMap((log, idx) => {
+                const checkInDate = new Date(log.checkIn);
+                const dateKey = format(checkInDate, "yyyy-MM-dd");
+                const prevDateKey = idx > 0 ? format(new Date(logs[idx - 1].checkIn), "yyyy-MM-dd") : null;
+                const showDateHeader = dateKey !== prevDateKey;
+
                 const isIpMatch = log.ipAddress === log.branch.allowedPublicIp || (log.ipAddress === "::1" || log.ipAddress === "127.0.0.1");
                 const isDistanceOk = log.distance <= 100;
 
-                return (
+                const totalHours = log.totalHours ?? (log.checkOut
+                  ? (new Date(log.checkOut).getTime() - checkInDate.getTime()) / 3_600_000
+                  : null);
+                const durationLabel = formatDuration(totalHours);
+
+                const elements: React.ReactNode[] = [];
+
+                if (showDateHeader) {
+                  elements.push(
+                    <TableRow key={`date-${dateKey}`} className="hover:bg-transparent">
+                      <TableCell
+                        colSpan={7}
+                        className="py-3 px-6 bg-slate-50/80 dark:bg-slate-800/40 border-y border-slate-100 dark:border-slate-800"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                            <CalendarIcon size={14} />
+                          </div>
+                          <span className="text-sm font-black text-slate-900 dark:text-white capitalize">
+                            {format(checkInDate, "EEEE, dd/MM/yyyy", { locale: vi })}
+                          </span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
+
+                elements.push(
                   <TableRow key={log.id} className="group transition-all hover:bg-slate-50/80 dark:hover:bg-slate-800/40 border-b border-slate-50 dark:border-slate-800">
                     <TableCell className="py-5 px-6">
                       <div className="flex items-center gap-4">
@@ -288,15 +432,25 @@ export default function AttendanceLogsPage() {
                     </TableCell>
 
                     <TableCell>
-                      <div className="flex flex-col">
+                      <div className="flex flex-col min-w-[140px]">
                         <div className="flex items-center gap-2 font-bold text-slate-700 dark:text-slate-300">
-                          <span className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 px-2 rounded-lg text-xs py-0.5">VÀO</span>
-                          {format(new Date(log.checkIn), "HH:mm")}
+                          <span className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 px-2 rounded-lg text-xs py-0.5 w-10 text-center">VÀO</span>
+                          {format(checkInDate, "HH:mm")}
                         </div>
                         <div className="flex items-center gap-2 font-bold text-slate-500 mt-1">
-                          <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 rounded-lg text-xs py-0.5">RA</span>
+                          <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 rounded-lg text-xs py-0.5 w-10 text-center">RA</span>
                           {log.checkOut ? format(new Date(log.checkOut), "HH:mm") : "--:--"}
                         </div>
+                        {durationLabel ? (
+                          <div className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mt-2">
+                            <Clock size={12} />
+                            <span>{durationLabel}</span>
+                          </div>
+                        ) : !log.checkOut ? (
+                          <div className="text-[11px] font-bold text-amber-600 dark:text-amber-400 mt-2">
+                            Đang trong ca
+                          </div>
+                        ) : null}
                       </div>
                     </TableCell>
 
@@ -405,6 +559,8 @@ export default function AttendanceLogsPage() {
                     </TableCell>
                   </TableRow>
                 );
+
+                return elements;
               })
             )}
           </TableBody>
